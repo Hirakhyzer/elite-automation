@@ -1,0 +1,18 @@
+[project]
+name = "elite-automation"
+version = "0.1.0"
+description = "Automation toolkit for designing, writing, scheduling, and posting social media content."
+authors = [{name = "Automation Bot"}]
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = []
+
+[project.optional-dependencies]
+design = ["pillow>=9.0.0"]
+
+[project.scripts]
+elite-automation = "elite_automation.automation_cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
