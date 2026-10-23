@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterable
 
 _PERSONA_TONE = {
@@ -90,7 +90,7 @@ class AutoWriter:
         prompt = self.strategy.random_prompt().format(topic=topic, tone=tone)
         headline = prompt.split(".")[0].capitalize()
         caption = (
-            f"{prompt} Published on {datetime.utcnow():%B %d, %Y}."
+            f"{prompt} Published on {datetime.now(timezone.utc):%B %d, %Y}."
             " Encourage the reader to take the next step right away!"
         )
         hashtags = self._generate_hashtags(topic)
