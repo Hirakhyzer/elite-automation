@@ -9,6 +9,7 @@ dependencies = []
 
 [project.optional-dependencies]
 design = ["pillow>=9.0.0"]
+dev = ["pytest>=7.0"]
 
 [project.scripts]
 elite-automation = "elite_automation.automation_cli:main"
@@ -16,3 +17,7 @@ elite-automation = "elite_automation.automation_cli:main"
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
