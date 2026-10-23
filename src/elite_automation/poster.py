@@ -20,14 +20,27 @@ _CONNECTOR_TYPES = {
 
 
 def build_connector(name: str, config: dict[str, Any]) -> SocialConnector:
-    connector_type = config.get("type", "mock").lower()
+    connector_type = str(config.get("type", "mock")).lower()
     connector_cls = _CONNECTOR_TYPES.get(connector_type)
     if not connector_cls:
         raise ValueError(f"Unknown connector type: {connector_type}")
     if connector_cls is WebhookConnector:
-        endpoint = config["endpoint"]
+        endpoint = config.get("endpoint")
+        if not isinstance(endpoint, str) or not endpoint.strip():
+            raise ValueError(
+                f"Connector '{name}' of type 'webhook' requires a non-empty 'endpoint' URL."
+            )
         headers = config.get("headers")
-        return connector_cls(name=name, endpoint=endpoint, headers=headers)
+        if headers is not None and not isinstance(headers, dict):
+            raise ValueError(f"Connector '{name}' webhook 'headers' must be a mapping.")
+        timeout_s = config.get("timeout_s", 10.0)
+        try:
+            timeout_s = float(timeout_s)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Connector '{name}' webhook 'timeout_s' must be numeric.") from exc
+        if timeout_s <= 0:
+            raise ValueError(f"Connector '{name}' webhook 'timeout_s' must be positive.")
+        return connector_cls(name=name, endpoint=endpoint, headers=headers, timeout_s=timeout_s)
     return connector_cls(name=name)
 
 
