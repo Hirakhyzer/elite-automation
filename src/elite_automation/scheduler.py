@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Sequence
+from typing import Protocol, Sequence
 
 from .content import PostCopy
 from .design import DesignTemplate
+
+_MAX_SLEEP_SECONDS = 300.0
 
 
 @dataclass(order=True)
@@ -24,6 +26,8 @@ class Schedule:
         run_at = datetime.fromisoformat(timestamp)
         if run_at.tzinfo is None:
             run_at = run_at.replace(tzinfo=timezone.utc)
+        else:
+            run_at = run_at.astimezone(timezone.utc)
         return Schedule(run_at=run_at, copy=copy, design=design)
 
 
@@ -45,15 +49,23 @@ class Scheduler:
             self.queue.append(schedule)
         self.queue.sort()
 
+    async def _wait_until(self, run_at: datetime) -> None:
+        """Wait in bounded chunks so cancellation and clock changes are re-evaluated."""
+        while True:
+            remaining = (run_at - datetime.now(tz=timezone.utc)).total_seconds()
+            if remaining <= 0:
+                return
+            await asyncio.sleep(min(remaining, _MAX_SLEEP_SECONDS))
+
     async def dispatch(self, autoposter: "AutoPosterProtocol") -> None:
-        for schedule in self.queue:
-            now = datetime.now(tz=timezone.utc)
-            if schedule.run_at > now:
-                await asyncio.sleep((schedule.run_at - now).total_seconds())
-            await autoposter.post(schedule.copy, schedule.design)
-        self.queue.clear()
+        try:
+            for schedule in self.queue:
+                await self._wait_until(schedule.run_at)
+                await autoposter.post(schedule.copy, schedule.design)
+        finally:
+            self.queue.clear()
 
 
-class AutoPosterProtocol:
-    async def post(self, copy: PostCopy, design: DesignTemplate) -> None:  # pragma: no cover - protocol
+class AutoPosterProtocol(Protocol):
+    async def post(self, copy: PostCopy, design: DesignTemplate) -> None:
         ...
