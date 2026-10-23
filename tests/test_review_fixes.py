@@ -49,17 +49,20 @@ def test_schedule_parse_normalizes_offset_to_utc() -> None:
     assert schedule.run_at == datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
 
-def test_wait_until_chunks_long_delays() -> None:
+def test_wait_until_chunks_long_delays_and_remains_cancellable() -> None:
     scheduler = Scheduler()
     future = datetime.now(timezone.utc) + timedelta(hours=2)
+    observed: list[float] = []
+
+    async def fake_sleep(delay: float) -> None:
+        observed.append(delay)
+        raise asyncio.CancelledError
 
     async def exercise() -> None:
-        with patch("elite_automation.scheduler.asyncio.sleep", new_callable=MagicMock) as sleep:
-            async def cancel_after_first(delay: float) -> None:
-                assert delay <= 300.0
-                raise asyncio.CancelledError
-            sleep.side_effect = cancel_after_first
+        with patch("elite_automation.scheduler.asyncio.sleep", side_effect=fake_sleep):
             with pytest.raises(asyncio.CancelledError):
                 await scheduler._wait_until(future)
 
     asyncio.run(exercise())
+    assert len(observed) == 1
+    assert 0 < observed[0] <= 300.0
