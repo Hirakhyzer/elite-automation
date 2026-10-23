@@ -8,7 +8,7 @@ from typing import Any
 
 try:  # Optional Pillow support
     from PIL import Image, ImageDraw, ImageFont  # type: ignore
-except Exception:  # pragma: no cover - pillow not installed
+except ImportError:  # pragma: no cover - pillow not installed
     Image = ImageDraw = ImageFont = None  # type: ignore
 
 
@@ -52,8 +52,8 @@ class AutoDesigner:
             return None
         try:
             return ImageFont.truetype("DejaVuSans.ttf", 64)
-        except Exception:
-            return ImageFont.load_default() if ImageFont else None
+        except OSError:
+            return ImageFont.load_default()
 
     def _render_image(self, message: str, background: str, accent: str) -> Path | None:
         if Image is None:
